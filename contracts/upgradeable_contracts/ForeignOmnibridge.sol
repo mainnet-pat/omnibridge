@@ -87,6 +87,12 @@ contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnecto
 
         _releaseTokens(_isNative, _token, _recipient, _value, _value);
 
+        // send free gas if recipient account balance is 0
+        uint256 freeGas = freeGasAmount();
+        if (freeGas > 0 && _recipient.balance == 0 && address(this).balance >= freeGas) {
+            payable(_recipient).send(freeGas);
+        }
+
         emit TokensBridged(_token, _recipient, _value, messageId());
     }
 
@@ -183,6 +189,7 @@ contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnecto
     function _passMessage(bytes memory _data, bool _useOracleLane) internal override returns (bytes32) {
         (_useOracleLane);
 
+        require(msg.value >= passMessageFlatFee(), "Fee not paid");
         return bridgeContract().requireToPassMessage(mediatorContractOnOtherSide(), _data, requestGasLimit());
     }
 

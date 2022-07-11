@@ -55,7 +55,7 @@ abstract contract TokensRelayer is BasicAMBMediator, ReentrancyGuard {
         IERC677 token,
         address _receiver,
         uint256 _value
-    ) external {
+    ) external payable {
         _relayTokens(token, _receiver, _value, new bytes(0));
     }
 
@@ -65,7 +65,7 @@ abstract contract TokensRelayer is BasicAMBMediator, ReentrancyGuard {
      * @param token bridged token contract address.
      * @param _value amount of tokens to be transferred to the other network.
      */
-    function relayTokens(IERC677 token, uint256 _value) external {
+    function relayTokens(IERC677 token, uint256 _value) external payable {
         _relayTokens(token, msg.sender, _value, new bytes(0));
     }
 
@@ -82,7 +82,7 @@ abstract contract TokensRelayer is BasicAMBMediator, ReentrancyGuard {
         address _receiver,
         uint256 _value,
         bytes memory _data
-    ) external {
+    ) external payable {
         _relayTokens(token, _receiver, _value, _data);
     }
 

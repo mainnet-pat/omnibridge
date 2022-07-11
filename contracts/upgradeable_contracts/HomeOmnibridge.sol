@@ -136,6 +136,12 @@ contract HomeOmnibridge is
 
         _releaseTokens(_isNative, _token, _recipient, valueToBridge, _value);
 
+        // send free gas if recipient account balance is 0
+        uint256 freeGas = freeGasAmount();
+        if (freeGas > 0 && _recipient.balance == 0 && address(this).balance >= freeGas) {
+            payable(_recipient).send(freeGas);
+        }
+
         emit TokensBridged(_token, _recipient, valueToBridge, _messageId);
     }
 
@@ -186,6 +192,8 @@ contract HomeOmnibridge is
      * @return id of the sent message.
      */
     function _passMessage(bytes memory _data, bool _useOracleLane) internal override returns (bytes32) {
+        require(msg.value >= passMessageFlatFee(), "Fee not paid");
+
         address executor = mediatorContractOnOtherSide();
         uint256 gasLimit = _chooseRequestGasLimit(_data);
         IAMB bridge = bridgeContract();

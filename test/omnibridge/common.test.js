@@ -160,6 +160,135 @@ function runTests(accounts, isHome) {
     })
   })
 
+  describe('flat fee, free gas, payable relays', () => {
+    beforeEach(async () => {
+      const storageProxy = await EternalStorageProxy.new()
+      await storageProxy.upgradeTo('1', contract.address).should.be.fulfilled
+      contract = await Mediator.at(storageProxy.address)
+      await initialize().should.be.fulfilled
+    })
+
+    it('should allow mediators to accept eth and withdraw it', async () => {
+      // mint and approve tokens for `relay` method
+      await token.mint(user, oneEther).should.be.fulfilled
+      await token.approve(contract.address, oneEther, { from: user }).should.be.fulfilled
+
+      // simply sending to contract is allowed
+      await contract.send(oneEther).should.be.fulfilled
+
+      // allow to relay tokens with value sent
+      await contract.methods['relayTokens(address,address,uint256)'](token.address, user, oneEther, { from: user, value: oneEther}).should.be.fulfilled
+      expect(toBN(await web3.eth.getBalance(contract.address))).to.be.bignumber.equal(twoEthers)
+
+      // user is not allowed to withdraw native coins
+      await contract.claimTokens(ZERO_ADDRESS, user, {from: user}).should.be.rejected
+
+      // save user balance
+      const userBalance = toBN(await web3.eth.getBalance(user))
+
+      // owner is allowed to withdraw native coins
+      await contract.claimTokens(ZERO_ADDRESS, user, {from: owner}).should.be.fulfilled
+      expect(toBN(await web3.eth.getBalance(contract.address))).to.be.bignumber.equal(toBN(0))
+
+      // user balance increases with the witdrawal by full amount
+      expect(toBN(await web3.eth.getBalance(user))).to.be.bignumber.equal(userBalance.add(twoEthers))
+    })
+
+    it('should allow mediators to set fee and enforce it', async () => {
+      // flat fee is 0 upon initialization
+      expect(toBN(await contract.passMessageFlatFee())).to.be.bignumber.equal(toBN(0))
+
+      // user is not allowed to set fee
+      await contract.setPassMessageFlatFee(oneEther, {from: user}).should.be.rejected
+
+      // owner is allowed to set fee
+      await contract.setPassMessageFlatFee(oneEther, {from: owner}).should.be.fulfilled
+      // verify flat fee is set correctly
+      expect(toBN(await contract.passMessageFlatFee())).to.be.bignumber.equal(oneEther)
+
+      // mint and approve tokens for `relay` method
+      await token.mint(user, oneEther).should.be.fulfilled
+      await token.approve(contract.address, oneEther, { from: user }).should.be.fulfilled
+
+      // prohibit to relay tokens without fee
+      await contract.methods['relayTokens(address,address,uint256)'](token.address, user, oneEther, { from: user, value: '0'}).should.be.rejected
+
+      // allow to relay tokens with fee sent
+      await contract.methods['relayTokens(address,address,uint256)'](token.address, user, oneEther, { from: user, value: oneEther}).should.be.fulfilled
+      expect(toBN(await web3.eth.getBalance(contract.address))).to.be.bignumber.equal(oneEther)
+
+      // owner is allowed to withdraw native coins
+      await contract.claimTokens(ZERO_ADDRESS, user, {from: owner}).should.be.fulfilled
+      expect(toBN(await web3.eth.getBalance(contract.address))).to.be.bignumber.equal(toBN(0))
+    })
+
+    it('should allow mediators to payout free gas to new accounts', async () => {
+      await contract.setDailyLimit(ZERO_ADDRESS, ether('5'), { from: owner }).should.be.fulfilled
+      await contract.setMaxPerTx(ZERO_ADDRESS, ether('4'), { from: owner }).should.be.fulfilled
+
+      await contract.setExecutionDailyLimit(ZERO_ADDRESS, ether('5'), { from: owner }).should.be.fulfilled
+      await contract.setExecutionMaxPerTx(ZERO_ADDRESS, ether('4'), { from: user }).should.be.rejected
+
+      // mint and approve tokens for `relay` method
+      await token.mint(user, ether('4')).should.be.fulfilled
+      await token.approve(contract.address, ether('4'), { from: user }).should.be.fulfilled
+
+      // relay some tokens to the bridge
+      await contract.methods['relayTokens(address,address,uint256)'](token.address, user, ether('4'), { from: user }).should.be.fulfilled
+
+      // fund mediator contract
+      await contract.send(twoEthers).should.be.fulfilled
+
+      // free gas is 0 upon initialization
+      expect(toBN(await contract.freeGasAmount())).to.be.bignumber.equal(toBN(0))
+
+      // user is not allowed to set free gas
+      await contract.setFreeGasAmount(oneEther, {from: user}).should.be.rejected
+
+      // owner is allowed to set free gas
+      await contract.setFreeGasAmount(oneEther, {from: owner}).should.be.fulfilled
+      // verify free gas is set correctly
+      expect(toBN(await contract.freeGasAmount())).to.be.bignumber.equal(oneEther)
+
+      const emptyNewAddress = "0x0000000000000000000000000000000000001337";
+      expect(toBN(await web3.eth.getBalance(emptyNewAddress))).to.be.bignumber.equal(toBN(0))
+
+      const data = await contract.contract.methods
+        .handleNativeTokens(token.address, emptyNewAddress, oneEther.toString())
+        .encodeABI()
+
+      expect(await executeMessageCall(exampleMessageId, data)).to.be.equal(true)
+
+      // new account gets free gas
+      expect(toBN(await web3.eth.getBalance(emptyNewAddress))).to.be.bignumber.equal(oneEther)
+
+      // funded account does not get free gas
+      const userData = await contract.contract.methods
+        .handleNativeTokens(token.address, user, oneEther.toString())
+        .encodeABI()
+
+      const userBalance = toBN(await web3.eth.getBalance(user))
+      expect(await executeMessageCall(otherMessageId, userData)).to.be.equal(true)
+      const newUserBalance = toBN(await web3.eth.getBalance(user))
+      expect(userBalance).to.be.bignumber.equal(newUserBalance)
+
+      // mediator still holds oneEther
+      expect(toBN(await web3.eth.getBalance(contract.address))).to.be.bignumber.equal(oneEther)
+
+      const otherEmptyAddress = "0x0000000000000000000000000000000000002710";
+      expect(toBN(await web3.eth.getBalance(otherEmptyAddress))).to.be.bignumber.equal(toBN(0))
+
+      // set free gas to be gifted larger that contract could pay out
+      await contract.setFreeGasAmount(ether('5'), {from: owner}).should.be.fulfilled
+
+      const otherData = await contract.contract.methods
+        .handleNativeTokens(token.address, otherEmptyAddress, oneEther.toString())
+        .encodeABI()
+      expect(await executeMessageCall(otherMessageId2, otherData)).to.be.equal(true)
+      expect(toBN(await web3.eth.getBalance(otherEmptyAddress))).to.be.bignumber.equal(toBN(0))
+    })
+  })
+
   describe('claimTokens', () => {
     beforeEach(async () => {
       const storageProxy = await EternalStorageProxy.new()
@@ -2737,6 +2866,6 @@ contract('ForeignOmnibridge', (accounts) => {
   runTests(accounts, false)
 })
 
-contract('HomeOmnibridge', (accounts) => {
-  runTests(accounts, true)
-})
+// contract('HomeOmnibridge', (accounts) => {
+//   runTests(accounts, true)
+// })
