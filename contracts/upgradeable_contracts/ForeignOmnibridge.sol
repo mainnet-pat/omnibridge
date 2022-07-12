@@ -1,8 +1,8 @@
 pragma solidity 0.7.5;
 
 import "./BasicOmnibridge.sol";
-import "./components/common/GasLimitManager.sol";
-import "./components/common/InterestConnector.sol";
+import "./components/common/ProxyGasLimitManager.sol";
+// import "./components/common/InterestConnector.sol";
 import "../libraries/SafeMint.sol";
 
 /**
@@ -10,7 +10,9 @@ import "../libraries/SafeMint.sol";
  * @dev Foreign side implementation for multi-token mediator intended to work on top of AMB bridge.
  * It is designed to be used as an implementation contract of EternalStorageProxy contract.
  */
-contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnector {
+contract ForeignOmnibridge is BasicOmnibridge, ProxyGasLimitManager
+//, InterestConnector
+{
     using SafeERC20 for IERC677;
     using SafeMint for IBurnableMintableERC677Token;
     using SafeMath for uint256;
@@ -42,8 +44,8 @@ contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnecto
 
         _setBridgeContract(_bridgeContract);
         _setMediatorContractOnOtherSide(_mediatorContract);
-        _setLimits(address(0), _dailyLimitMaxPerTxMinPerTxArray);
-        _setExecutionLimits(address(0), _executionDailyLimitExecutionMaxPerTxArray);
+        // _setLimits(address(0), _dailyLimitMaxPerTxMinPerTxArray);
+        // _setExecutionLimits(address(0), _executionDailyLimitExecutionMaxPerTxArray);
         _setRequestGasLimit(_requestGasLimit);
         _setOwner(_owner);
         _setTokenFactory(_tokenFactory);
@@ -82,15 +84,15 @@ contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnecto
         // such reentrant withdrawal can lead to an incorrect balanceDiff calculation
         require(!lock());
 
-        require(withinExecutionLimit(_token, _value));
-        addTotalExecutedPerDay(_token, getCurrentDay(), _value);
+        // require(withinExecutionLimit(_token, _value));
+        // addTotalExecutedPerDay(_token, getCurrentDay(), _value);
 
         _releaseTokens(_isNative, _token, _recipient, _value, _value);
 
         // send free gas if recipient account balance is 0
         uint256 freeGas = freeGasAmount();
         if (freeGas > 0 && _recipient.balance == 0 && address(this).balance >= freeGas) {
-            payable(_recipient).send(freeGas);
+            payable(_recipient).transfer(freeGas);
         }
 
         emit TokensBridged(_token, _recipient, _value, messageId());
@@ -113,14 +115,14 @@ contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnecto
     ) internal virtual override {
         require(_receiver != address(0) && _receiver != mediatorContractOnOtherSide());
 
-        // native unbridged token
-        if (!isTokenRegistered(_token)) {
-            uint8 decimals = TokenReader.readDecimals(_token);
-            _initializeTokenBridgeLimits(_token, decimals);
-        }
+        // // native unbridged token
+        // if (!isTokenRegistered(_token)) {
+        //     uint8 decimals = TokenReader.readDecimals(_token);
+        //     _initializeTokenBridgeLimits(_token, decimals);
+        // }
 
-        require(withinLimit(_token, _value));
-        addTotalSpentPerDay(_token, getCurrentDay(), _value);
+        // require(withinLimit(_token, _value));
+        // addTotalSpentPerDay(_token, getCurrentDay(), _value);
 
         bytes memory data = _prepareMessage(nativeTokenAddress(_token), _token, _receiver, _value, _data);
         bytes32 _messageId = _passMessage(data, true);
@@ -162,16 +164,16 @@ contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnecto
                 balance = _value;
             }
 
-            IInterestImplementation impl = interestImplementation(_token);
-            // can be used instead of Address.isContract(address(impl)),
-            // since _setInterestImplementation guarantees that impl is either a contract or zero address
-            // and interest implementation does not contain any selfdestruct opcode
-            if (address(impl) != address(0)) {
-                uint256 availableBalance = balance.sub(impl.investedAmount(_token));
-                if (_value > availableBalance) {
-                    impl.withdraw(_token, (_value - availableBalance).add(minCashThreshold(_token)));
-                }
-            }
+            // IInterestImplementation impl = interestImplementation(_token);
+            // // can be used instead of Address.isContract(address(impl)),
+            // // since _setInterestImplementation guarantees that impl is either a contract or zero address
+            // // and interest implementation does not contain any selfdestruct opcode
+            // if (address(impl) != address(0)) {
+            //     uint256 availableBalance = balance.sub(impl.investedAmount(_token));
+            //     if (_value > availableBalance) {
+            //         impl.withdraw(_token, (_value - availableBalance).add(minCashThreshold(_token)));
+            //     }
+            // }
 
             _setMediatorBalance(_token, balance.sub(_balanceChange));
             IERC677(_token).safeTransfer(_recipient, _value);
@@ -193,15 +195,15 @@ contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnecto
         return bridgeContract().requireToPassMessage(mediatorContractOnOtherSide(), _data, requestGasLimit());
     }
 
-    /**
-     * @dev Internal function for counting excess balance which is not tracked within the bridge.
-     * Represents the amount of forced tokens on this contract.
-     * @param _token address of the token contract.
-     * @return amount of excess tokens.
-     */
-    function _unaccountedBalance(address _token) internal view override returns (uint256) {
-        IInterestImplementation impl = interestImplementation(_token);
-        uint256 invested = Address.isContract(address(impl)) ? impl.investedAmount(_token) : 0;
-        return IERC677(_token).balanceOf(address(this)).sub(mediatorBalance(_token).sub(invested));
-    }
+    // /**
+    //  * @dev Internal function for counting excess balance which is not tracked within the bridge.
+    //  * Represents the amount of forced tokens on this contract.
+    //  * @param _token address of the token contract.
+    //  * @return amount of excess tokens.
+    //  */
+    // function _unaccountedBalance(address _token) internal view override returns (uint256) {
+    //     IInterestImplementation impl = interestImplementation(_token);
+    //     uint256 invested = Address.isContract(address(impl)) ? impl.investedAmount(_token) : 0;
+    //     return IERC677(_token).balanceOf(address(this)).sub(mediatorBalance(_token).sub(invested));
+    // }
 }

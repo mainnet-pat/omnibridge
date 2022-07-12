@@ -50,8 +50,8 @@ contract HomeOmnibridge is
 
         _setBridgeContract(_bridgeContract);
         _setMediatorContractOnOtherSide(_mediatorContract);
-        _setLimits(address(0), _dailyLimitMaxPerTxMinPerTxArray);
-        _setExecutionLimits(address(0), _executionDailyLimitExecutionMaxPerTxArray);
+        // _setLimits(address(0), _dailyLimitMaxPerTxMinPerTxArray);
+        // _setExecutionLimits(address(0), _executionDailyLimitExecutionMaxPerTxArray);
         _setGasLimitManager(_gasLimitManager);
         _setOwner(_owner);
         _setTokenFactory(_tokenFactory);
@@ -83,8 +83,8 @@ contract HomeOmnibridge is
         _setForwardingRulesManager(_forwardingRulesManager);
         _setGasLimitManager(_gasLimitManager);
 
-        uintStorage[keccak256(abi.encodePacked("dailyLimit", address(0)))] = _dailyLimit;
-        emit DailyLimitChanged(address(0), _dailyLimit);
+        // uintStorage[keccak256(abi.encodePacked("dailyLimit", address(0)))] = _dailyLimit;
+        // emit DailyLimitChanged(address(0), _dailyLimit);
     }
 
     /**
@@ -123,8 +123,8 @@ contract HomeOmnibridge is
         // such reentrant withdrawal can lead to an incorrect balanceDiff calculation
         require(!lock());
 
-        require(withinExecutionLimit(_token, _value));
-        addTotalExecutedPerDay(_token, getCurrentDay(), _value);
+        // require(withinExecutionLimit(_token, _value));
+        // addTotalExecutedPerDay(_token, getCurrentDay(), _value);
 
         uint256 valueToBridge = _value;
         uint256 fee = _distributeFee(FOREIGN_TO_HOME_FEE, _isNative, address(0), _token, valueToBridge);
@@ -163,13 +163,13 @@ contract HomeOmnibridge is
         require(_receiver != address(0) && _receiver != mediatorContractOnOtherSide());
 
         // native unbridged token
-        if (!isTokenRegistered(_token)) {
-            uint8 decimals = TokenReader.readDecimals(_token);
-            _initializeTokenBridgeLimits(_token, decimals);
-        }
+        // if (!isTokenRegistered(_token)) {
+        //     uint8 decimals = TokenReader.readDecimals(_token);
+        //     _initializeTokenBridgeLimits(_token, decimals);
+        // }
 
-        require(withinLimit(_token, _value));
-        addTotalSpentPerDay(_token, getCurrentDay(), _value);
+        // require(withinLimit(_token, _value));
+        // addTotalSpentPerDay(_token, getCurrentDay(), _value);
 
         address nativeToken = nativeTokenAddress(_token);
         uint256 fee = _distributeFee(HOME_TO_FOREIGN_FEE, nativeToken == address(0), _from, _token, _value);
