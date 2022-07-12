@@ -7,6 +7,7 @@
     "test": "test/test.sh",
     "coverage": "SOLIDITY_COVERAGE=true yarn test",
     "compile": "truffle compile",
+    "precompile": "mv contracts contracts_ ; yarn truffle --config truffle-config-permittable.js compile --compile-all ; mv build/contracts/PermittableToken.json precompiled/PermittableToken.json ; mv build/contracts/ERC677BridgeToken.json precompiled/ERC677BridgeToken.json ; mv contracts_ contracts",
     "flatten": "bash flatten.sh 2>/dev/null",
     "lint": "yarn run lint:js && yarn run lint:sol",
     "lint:js": "eslint .",
