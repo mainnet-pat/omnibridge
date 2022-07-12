@@ -1,4 +1,5 @@
 module.exports = {
+  contracts_directory: "./precompiled/*.sol",
   contracts_build_directory: './build/contracts',
   networks: {
     ganache: {
@@ -12,13 +13,12 @@ module.exports = {
   },
   compilers: {
     solc: {
-      version: '0.7.5',
+      version: '0.4.24',
       settings: {
         optimizer: {
           enabled: true,
           runs: 200,
         },
-        evmVersion: 'istanbul',
       },
     },
   },
