@@ -176,9 +176,13 @@ function runTests(accounts, isHome) {
       // simply sending to contract is allowed
       await contract.send(oneEther).should.be.fulfilled
 
-      // allow to relay tokens with value sent
-      await contract.methods['relayTokens(address,address,uint256)'](token.address, user, oneEther, { from: user, value: oneEther}).should.be.fulfilled
-      expect(toBN(await web3.eth.getBalance(contract.address))).to.be.bignumber.equal(twoEthers)
+      // allow to relay tokens with value sent `relayTokens`
+      await contract.methods['relayTokens(address,address,uint256)'](token.address, user, halfEther, { from: user, value: halfEther}).should.be.fulfilled
+      expect(toBN(await web3.eth.getBalance(contract.address))).to.be.bignumber.equal(ether('1.5'))
+
+      // allow to relay tokens with value sent `transferAndCall`
+      await token.transferAndCall(contract.address, halfEther, '0x', { from: user, value: halfEther }).should.be.fulfilled
+      expect(toBN(await web3.eth.getBalance(contract.address))).to.be.bignumber.equal(ether('2'))
 
       // user is not allowed to withdraw native coins
       await contract.claimTokens(ZERO_ADDRESS, user, {from: user}).should.be.rejected
@@ -2866,6 +2870,6 @@ contract('ForeignOmnibridge', (accounts) => {
   runTests(accounts, false)
 })
 
-// contract('HomeOmnibridge', (accounts) => {
-//   runTests(accounts, true)
-// })
+contract('HomeOmnibridge', (accounts) => {
+  runTests(accounts, true)
+})
