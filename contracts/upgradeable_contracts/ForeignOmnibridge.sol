@@ -4,6 +4,7 @@ import "./BasicOmnibridge.sol";
 import "./components/common/GasLimitManager.sol";
 import "./components/common/InterestConnector.sol";
 import "../libraries/SafeMint.sol";
+import "./components/common/TokensBridgeLimits.sol";
 
 /**
  * @title ForeignOmnibridge
@@ -40,6 +41,7 @@ contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnecto
     ) external onlyRelevantSender returns (bool) {
         require(!isInitialized());
 
+        _setTokensBridgeLimitsContract(new TokensBridgeLimits());
         _setBridgeContract(_bridgeContract);
         _setMediatorContractOnOtherSide(_mediatorContract);
         _setLimits(address(0), _dailyLimitMaxPerTxMinPerTxArray);

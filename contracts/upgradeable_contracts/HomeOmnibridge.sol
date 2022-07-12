@@ -16,6 +16,8 @@ contract HomeOmnibridge is
     OmnibridgeFeeManagerConnector,
     MultiTokenForwardingRulesConnector
 {
+    event DailyLimitChanged(address indexed token, uint256 newLimit);
+
     using SafeMath for uint256;
     using SafeERC20 for IERC677;
 
@@ -48,6 +50,7 @@ contract HomeOmnibridge is
     ) external onlyRelevantSender returns (bool) {
         require(!isInitialized());
 
+        _setTokensBridgeLimitsContract(new TokensBridgeLimits());
         _setBridgeContract(_bridgeContract);
         _setMediatorContractOnOtherSide(_mediatorContract);
         _setLimits(address(0), _dailyLimitMaxPerTxMinPerTxArray);

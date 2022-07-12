@@ -9,7 +9,7 @@ import "./components/native/NativeTokensRegistry.sol";
 import "./components/native/MediatorBalanceStorage.sol";
 import "./components/common/TokensRelayer.sol";
 import "./components/common/OmnibridgeInfo.sol";
-import "./components/common/TokensBridgeLimits.sol";
+import "./components/common/TokensBridgeLimitsConnector.sol";
 import "./components/common/FailedMessagesProcessor.sol";
 import "./modules/factory/TokenFactoryConnector.sol";
 import "../interfaces/IBurnableMintableERC677Token.sol";
@@ -33,7 +33,7 @@ abstract contract BasicOmnibridge is
     NativeTokensRegistry,
     MediatorBalanceStorage,
     TokenFactoryConnector,
-    TokensBridgeLimits
+    TokensBridgeLimitsConnector
 {
     using SafeERC20 for IERC677;
     using SafeMint for IBurnableMintableERC677Token;
