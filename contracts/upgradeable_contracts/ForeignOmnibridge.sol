@@ -189,7 +189,7 @@ contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnecto
     function _passMessage(bytes memory _data, bool _useOracleLane) internal override returns (bytes32) {
         (_useOracleLane);
 
-        require(msg.value >= passMessageFlatFee(), "Fee not paid");
+        require(msg.value >= passMessageFlatFee());
         return bridgeContract().requireToPassMessage(mediatorContractOnOtherSide(), _data, requestGasLimit());
     }
 

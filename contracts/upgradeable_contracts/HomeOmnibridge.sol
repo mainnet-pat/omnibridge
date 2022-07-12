@@ -192,7 +192,7 @@ contract HomeOmnibridge is
      * @return id of the sent message.
      */
     function _passMessage(bytes memory _data, bool _useOracleLane) internal override returns (bytes32) {
-        require(msg.value >= passMessageFlatFee(), "Fee not paid");
+        require(msg.value >= passMessageFlatFee());
 
         address executor = mediatorContractOnOtherSide();
         uint256 gasLimit = _chooseRequestGasLimit(_data);
