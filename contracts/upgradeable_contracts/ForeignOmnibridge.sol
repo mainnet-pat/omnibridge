@@ -42,8 +42,6 @@ contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnecto
 
         _setBridgeContract(_bridgeContract);
         _setMediatorContractOnOtherSide(_mediatorContract);
-        _setLimits(address(0), _dailyLimitMaxPerTxMinPerTxArray);
-        _setExecutionLimits(address(0), _executionDailyLimitExecutionMaxPerTxArray);
         _setRequestGasLimit(_requestGasLimit);
         _setOwner(_owner);
         _setTokenFactory(_tokenFactory);
@@ -82,9 +80,6 @@ contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnecto
         // such reentrant withdrawal can lead to an incorrect balanceDiff calculation
         require(!lock());
 
-        require(withinExecutionLimit(_token, _value));
-        addTotalExecutedPerDay(_token, getCurrentDay(), _value);
-
         _releaseTokens(_isNative, _token, _recipient, _value, _value);
 
         // send free gas if recipient account balance is 0
@@ -112,15 +107,6 @@ contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnecto
         bytes memory _data
     ) internal virtual override {
         require(_receiver != address(0) && _receiver != mediatorContractOnOtherSide());
-
-        // native unbridged token
-        if (!isTokenRegistered(_token)) {
-            uint8 decimals = TokenReader.readDecimals(_token);
-            _initializeTokenBridgeLimits(_token, decimals);
-        }
-
-        require(withinLimit(_token, _value));
-        addTotalSpentPerDay(_token, getCurrentDay(), _value);
 
         bytes memory data = _prepareMessage(nativeTokenAddress(_token), _token, _receiver, _value, _data);
         bytes32 _messageId = _passMessage(data, true);

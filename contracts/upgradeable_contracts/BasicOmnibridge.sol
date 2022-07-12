@@ -9,7 +9,6 @@ import "./components/native/NativeTokensRegistry.sol";
 import "./components/native/MediatorBalanceStorage.sol";
 import "./components/common/TokensRelayer.sol";
 import "./components/common/OmnibridgeInfo.sol";
-import "./components/common/TokensBridgeLimits.sol";
 import "./components/common/FailedMessagesProcessor.sol";
 import "./modules/factory/TokenFactoryConnector.sol";
 import "../interfaces/IBurnableMintableERC677Token.sol";
@@ -32,8 +31,7 @@ abstract contract BasicOmnibridge is
     BridgedTokensRegistry,
     NativeTokensRegistry,
     MediatorBalanceStorage,
-    TokenFactoryConnector,
-    TokensBridgeLimits
+    TokenFactoryConnector
 {
     using SafeERC20 for IERC677;
     using SafeMint for IBurnableMintableERC677Token;
@@ -119,8 +117,6 @@ abstract contract BasicOmnibridge is
     ) external onlyMediator {
         address token = bridgedTokenAddress(_token);
 
-        require(isTokenRegistered(token));
-
         _handleTokens(token, false, _recipient, _value);
     }
 
@@ -140,8 +136,6 @@ abstract contract BasicOmnibridge is
         bytes memory _data
     ) external onlyMediator {
         address token = bridgedTokenAddress(_token);
-
-        require(isTokenRegistered(token));
 
         _handleTokens(token, false, _recipient, _value);
 
@@ -193,7 +187,7 @@ abstract contract BasicOmnibridge is
      * @return message id of the send message.
      */
     function isRegisteredAsNativeToken(address _token) public view returns (bool) {
-        return isTokenRegistered(_token) && nativeTokenAddress(_token) == address(0);
+        return nativeTokenAddress(_token) == address(0);
     }
 
     /**
@@ -217,7 +211,6 @@ abstract contract BasicOmnibridge is
      * @param _bridgedToken address of the bridged token contract.
      */
     function setCustomTokenAddressPair(address _nativeToken, address _bridgedToken) external onlyOwner {
-        require(!isTokenRegistered(_bridgedToken));
         require(nativeTokenAddress(_bridgedToken) == address(0));
         require(bridgedTokenAddress(_nativeToken) == address(0));
         // Unfortunately, there is no simple way to verify that the _nativeToken address
@@ -250,12 +243,6 @@ abstract contract BasicOmnibridge is
 
         uint256 diff = _unaccountedBalance(_token);
         require(diff > 0);
-        uint256 available = maxAvailablePerTx(_token);
-        require(available > 0);
-        if (diff > available) {
-            diff = available;
-        }
-        addTotalSpentPerDay(_token, getCurrentDay(), diff);
 
         bytes memory data = _prepareMessage(address(0), _token, _receiver, diff, new bytes(0));
         bytes32 _messageId = _passMessage(data, true);
@@ -270,7 +257,7 @@ abstract contract BasicOmnibridge is
      */
     function claimTokens(address _token, address _to) external onlyIfUpgradeabilityOwner {
         // Only unregistered tokens and native coins are allowed to be claimed with the use of this function
-        require(_token == address(0) || !isTokenRegistered(_token));
+        require(_token == address(0));
         claimValues(_token, _to);
     }
 
@@ -446,10 +433,6 @@ abstract contract BasicOmnibridge is
             name = _transformName(name);
             bridgedToken = tokenFactory().deploy(name, symbol, _decimals, bridgeContract().sourceChainId());
             _setTokenAddressPair(_token, bridgedToken);
-            _initializeTokenBridgeLimits(bridgedToken, _decimals);
-        } else if (!isTokenRegistered(bridgedToken)) {
-            require(IERC20Metadata(bridgedToken).decimals() == _decimals);
-            _initializeTokenBridgeLimits(bridgedToken, _decimals);
         }
         return bridgedToken;
     }
