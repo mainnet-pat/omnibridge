@@ -25,7 +25,7 @@ abstract contract TokensRelayer is BasicAMBMediator, ReentrancyGuard {
         address _from,
         uint256 _value,
         bytes memory _data
-    ) external returns (bool) {
+    ) external payable returns (bool) {
         if (!lock()) {
             bytes memory data = new bytes(0);
             address receiver = _from;

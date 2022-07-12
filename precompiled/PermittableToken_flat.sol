@@ -500,7 +500,7 @@ pragma solidity 0.4.24;
 contract ERC677 is ERC20 {
     event Transfer(address indexed from, address indexed to, uint256 value, bytes data);
 
-    function transferAndCall(address, uint256, bytes) external returns (bool);
+    function transferAndCall(address, uint256, bytes) external payable returns (bool);
 
     function increaseAllowance(address spender, uint256 addedValue) public returns (bool);
     function decreaseAllowance(address spender, uint256 subtractedValue) public returns (bool);
@@ -700,7 +700,7 @@ contract ERC677BridgeToken is IBurnableMintableERC677Token, DetailedERC20, Burna
         _;
     }
 
-    function transferAndCall(address _to, uint256 _value, bytes _data) external validRecipient(_to) returns (bool) {
+    function transferAndCall(address _to, uint256 _value, bytes _data) external payable validRecipient(_to) returns (bool) {
         require(superTransfer(_to, _value));
         emit Transfer(msg.sender, _to, _value, _data);
 
@@ -756,7 +756,7 @@ contract ERC677BridgeToken is IBurnableMintableERC677Token, DetailedERC20, Burna
      * @param _data set of extra bytes that can be passed to the recipient
      */
     function contractFallback(address _from, address _to, uint256 _value, bytes _data) private returns (bool) {
-        return _to.call(abi.encodeWithSelector(ON_TOKEN_TRANSFER, _from, _value, _data));
+        return _to.call.value(msg.value)(abi.encodeWithSelector(ON_TOKEN_TRANSFER, _from, _value, _data));
     }
 
     function finishMinting() public returns (bool) {

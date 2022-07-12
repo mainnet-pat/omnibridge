@@ -151,6 +151,5 @@ abstract contract BasicAMBMediator is Ownable {
         return uintStorage[FREE_GAS_AMOUNT];
     }
 
-    // fallback() external payable {}
     receive() external payable {}
 }
