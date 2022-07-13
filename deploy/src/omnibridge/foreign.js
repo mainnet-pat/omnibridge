@@ -1,11 +1,20 @@
 const { web3Foreign, deploymentAddress } = require('../web3')
 const { deployContract, upgradeProxy } = require('../deploymentUtils')
-const { EternalStorageProxy, ForeignOmnibridge, PermittableToken, TokenFactory } = require('../loadContracts')
+const {
+  EternalStorageProxy,
+  ForeignOmnibridge,
+  PermittableToken,
+  TokenFactory,
+  SelectorTokenGasLimitManager
+} = require('../loadContracts')
+
 const {
   FOREIGN_TOKEN_FACTORY,
   FOREIGN_ERC677_TOKEN_IMAGE,
   FOREIGN_BRIDGE_OWNER,
   FOREIGN_TOKEN_NAME_SUFFIX,
+  FOREIGN_AMB_BRIDGE,
+  FOREIGN_MEDIATOR_REQUEST_GAS_LIMIT,
 } = require('../loadEnv')
 
 async function deployForeign() {
@@ -44,6 +53,21 @@ async function deployForeign() {
     console.log('\n[Foreign] Using existing token factory: ', tokenFactory)
   }
 
+  console.log(`\n[Foreign] Deploying gas limit manager contract with the following parameters:
+    FOREIGN_AMB_BRIDGE: ${FOREIGN_AMB_BRIDGE}
+    OWNER: ${FOREIGN_BRIDGE_OWNER}
+  `)
+  const gasLimitManager = await deployContract(
+    SelectorTokenGasLimitManager,
+    [FOREIGN_AMB_BRIDGE, FOREIGN_BRIDGE_OWNER, FOREIGN_MEDIATOR_REQUEST_GAS_LIMIT], {
+      network: 'foreign',
+      nonce: nonce++
+    }
+  )
+  console.log('\n[Foreign] New Gas Limit Manager has been deployed: ', gasLimitManager.options.address)
+  console.log('[Foreign] Manual setup of request gas limits in the manager is recommended.')
+  console.log('[Foreign] Please, call setCommonRequestGasLimits on the Gas Limit Manager contract.')
+
   console.log('\n[Foreign] Deploying Bridge Mediator implementation with the following parameters:')
   console.log(`    TOKEN_NAME_SUFFIX: ${FOREIGN_TOKEN_NAME_SUFFIX}\n`)
   const foreignBridgeImplementation = await deployContract(ForeignOmnibridge, [FOREIGN_TOKEN_NAME_SUFFIX], {
@@ -65,6 +89,7 @@ async function deployForeign() {
   return {
     foreignBridgeMediator: { address: foreignBridgeStorage.options.address },
     tokenFactory: { address: tokenFactory },
+    gasLimitManager: { address: gasLimitManager.options.address }
   }
 }
 

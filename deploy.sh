@@ -29,4 +29,4 @@ if [ "$?" == "1" ]; then
   exit 2
 fi
 
-docker-compose run omnibridge-contracts deploy.sh "$@"
+docker-compose run --rm omnibridge-contracts deploy.sh "$@"

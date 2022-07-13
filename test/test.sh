@@ -45,5 +45,5 @@ else
     PROVIDER=http://ganache:8545 docker-compose -f test/docker-compose.yml up aave
   fi
 
-  node --max-old-space-size=4096 node_modules/.bin/truffle test --network ganache "$@"
+  node --max-old-space-size=4096 node_modules/.bin/truffle test --compile-all --network ganache "$@"
 fi

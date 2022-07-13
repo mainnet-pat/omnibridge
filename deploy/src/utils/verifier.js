@@ -6,8 +6,14 @@ const promiseRetry = require('promise-retry')
 const { EXPLORER_TYPES, REQUEST_STATUS } = require('../constants')
 
 const basePath = path.join(__dirname, '..', '..', '..', 'flats')
+const precompiledBasePath = path.join(__dirname, '..', '..', '..', 'precompiled')
 
-const flat = async (contractPath) => {
+const flat = async (contractPath, options) => {
+  if (options?.contractName === "PermittableToken") {
+    const filePath = path.join(precompiledBasePath, "PermittableToken_flat.sol")
+    return fs.readFileSync(filePath).toString()
+  }
+
   const pathArray = contractPath.split('/')
   const name = pathArray[pathArray.length - 1]
 
@@ -21,7 +27,7 @@ const flat = async (contractPath) => {
 const sendRequest = (url, queries) => axios.post(url, querystring.stringify(queries))
 
 const sendVerifyRequestEtherscan = async (contractPath, options) => {
-  const contract = await flat(contractPath)
+  const contract = await flat(contractPath, options)
   const postQueries = {
     apikey: options.apiKey,
     module: 'contract',
@@ -41,7 +47,7 @@ const sendVerifyRequestEtherscan = async (contractPath, options) => {
 }
 
 const sendVerifyRequestBlockscout = async (contractPath, options) => {
-  const contract = await flat(contractPath)
+  const contract = await flat(contractPath, options)
   const postQueries = {
     module: 'contract',
     action: 'verify',
@@ -68,9 +74,14 @@ const verifyContract = async (contract, params, type) => {
     if (result.data.message === REQUEST_STATUS.OK) {
       console.log(`${params.address} verified in ${type}`)
       return true
+    } else {
+      if (!result.data.result.includes(`Unable to locate ContractCode`)) {
+        console.warn(result)
+      }
     }
     return false
   } catch (e) {
+    console.error(e)
     return false
   }
 }
@@ -87,7 +98,17 @@ const verifier = async ({ artifact, address, constructorArguments, apiUrl, apiKe
   }
 
   const contract = artifact.sourcePath
-  const params = {
+  const params = (artifact.contractName === "PermittableToken" && !metadata) ? {
+    address,
+    contractName: artifact.contractName,
+    constructorArguments,
+    compiler: `v${artifact.compiler.version.replace('.Emscripten.clang', '')}`,
+    optimizationUsed: true,
+    runs: 200,
+    evmVersion: "default",
+    apiUrl,
+    apiKey,
+  } : {
     address,
     contractName: artifact.contractName,
     constructorArguments,

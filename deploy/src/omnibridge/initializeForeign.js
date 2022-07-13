@@ -28,6 +28,7 @@ async function initializeMediator({
     requestGasLimit,
     owner,
     tokenFactory,
+    gasLimitManager,
   },
 }) {
   console.log(`
@@ -39,6 +40,7 @@ async function initializeMediator({
     EXECUTION_DAILY_LIMIT : ${executionDailyLimit} which is ${fromWei(executionDailyLimit)} in eth,
     EXECUTION_MAX_AMOUNT_PER_TX: ${executionMaxPerTx} which is ${fromWei(executionMaxPerTx)} in eth,
     MEDIATOR_REQUEST_GAS_LIMIT : ${requestGasLimit},
+    GAS_LIMIT_MANAGER: ${gasLimitManager},
     OWNER: ${owner},
     TOKEN_FACTORY: ${tokenFactory}`)
 
@@ -48,14 +50,14 @@ async function initializeMediator({
       mediatorContract,
       [dailyLimit.toString(), maxPerTx.toString(), minPerTx.toString()],
       [executionDailyLimit.toString(), executionMaxPerTx.toString()],
-      requestGasLimit.toString(),
+      gasLimitManager,
       owner,
       tokenFactory
     )
     .encodeABI()
 }
 
-async function initialize({ homeBridge, foreignBridge, tokenFactory }) {
+async function initialize({ homeBridge, foreignBridge, tokenFactory, gasLimitManager }) {
   let nonce = await web3Foreign.eth.getTransactionCount(deploymentAddress)
   const contract = new web3Foreign.eth.Contract(ForeignOmnibridge.abi, foreignBridge)
 
@@ -74,6 +76,7 @@ async function initialize({ homeBridge, foreignBridge, tokenFactory }) {
       executionDailyLimit: HOME_DAILY_LIMIT,
       executionMaxPerTx: HOME_MAX_AMOUNT_PER_TX,
       tokenFactory,
+      gasLimitManager,
     },
   })
 

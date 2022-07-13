@@ -22,7 +22,7 @@ RUN yarn install --prod
 
 COPY --from=contracts /contracts/build ./build
 COPY --from=contracts /contracts/flats ./flats
-COPY ./precompiled/PermittableToken.json ./precompiled/PermittableToken.json
+COPY ./precompiled ./precompiled
 
 COPY deploy.sh deploy.sh
 COPY ./deploy ./deploy

@@ -22,17 +22,21 @@ async function deployOmnibridge() {
     homeBridgeMediator,
     tokenFactory: homeTokenFactory,
     feeManager,
-    gasLimitManager,
+    gasLimitManager: homeGasLimitManager,
     forwardingRulesManager,
   } = await deployHome()
-  const { foreignBridgeMediator, tokenFactory: foreignTokenFactory } = await deployForeign()
+  const {
+    foreignBridgeMediator,
+    tokenFactory: foreignTokenFactory,
+    gasLimitManager: foreignGasLimitManager
+  } = await deployForeign()
 
   await initializeHome({
     homeBridge: homeBridgeMediator.address,
     foreignBridge: foreignBridgeMediator.address,
     tokenFactory: homeTokenFactory.address,
     feeManager: feeManager.address,
-    gasLimitManager: gasLimitManager.address,
+    gasLimitManager: homeGasLimitManager.address,
     forwardingRulesManager: forwardingRulesManager.address,
   })
 
@@ -40,6 +44,7 @@ async function deployOmnibridge() {
     foreignBridge: foreignBridgeMediator.address,
     homeBridge: homeBridgeMediator.address,
     tokenFactory: foreignTokenFactory.address,
+    gasLimitManager: foreignGasLimitManager.address,
   })
 
   console.log('\nDeployment has been completed.\n\n')
