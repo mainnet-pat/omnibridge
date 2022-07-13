@@ -1,7 +1,7 @@
 pragma solidity 0.7.5;
 
 import "./BasicOmnibridge.sol";
-import "./components/common/GasLimitManager.sol";
+import "./components/common/FallbackGasLimitManager.sol";
 import "./components/common/InterestConnector.sol";
 import "../libraries/SafeMint.sol";
 
@@ -10,7 +10,7 @@ import "../libraries/SafeMint.sol";
  * @dev Foreign side implementation for multi-token mediator intended to work on top of AMB bridge.
  * It is designed to be used as an implementation contract of EternalStorageProxy contract.
  */
-contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnector {
+contract ForeignOmnibridge is BasicOmnibridge, FallbackGasLimitManager, InterestConnector {
     using SafeERC20 for IERC677;
     using SafeMint for IBurnableMintableERC677Token;
     using SafeMath for uint256;
@@ -90,7 +90,7 @@ contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnecto
         // send free gas if recipient account balance is 0
         uint256 freeGas = freeGasAmount();
         if (freeGas > 0 && _recipient.balance == 0 && address(this).balance >= freeGas) {
-            payable(_recipient).send(freeGas);
+            payable(_recipient).transfer(freeGas);
         }
 
         emit TokensBridged(_token, _recipient, _value, messageId());
@@ -190,7 +190,7 @@ contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnecto
         (_useOracleLane);
 
         require(msg.value >= passMessageFlatFee());
-        return bridgeContract().requireToPassMessage(mediatorContractOnOtherSide(), _data, requestGasLimit());
+        return bridgeContract().requireToPassMessage(mediatorContractOnOtherSide(), _data, _chooseRequestGasLimit(_data));
     }
 
     /**

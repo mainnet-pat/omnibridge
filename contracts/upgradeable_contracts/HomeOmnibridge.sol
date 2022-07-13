@@ -139,7 +139,7 @@ contract HomeOmnibridge is
         // send free gas if recipient account balance is 0
         uint256 freeGas = freeGasAmount();
         if (freeGas > 0 && _recipient.balance == 0 && address(this).balance >= freeGas) {
-            payable(_recipient).send(freeGas);
+            payable(_recipient).transfer(freeGas);
         }
 
         emit TokensBridged(_token, _recipient, valueToBridge, _messageId);
