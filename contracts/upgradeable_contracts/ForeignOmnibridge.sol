@@ -1,7 +1,7 @@
 pragma solidity 0.7.5;
 
 import "./BasicOmnibridge.sol";
-import "./components/common/GasLimitManager.sol";
+import "./modules/gas_limit/SelectorTokenGasLimitConnector.sol";
 import "./components/common/InterestConnector.sol";
 import "../libraries/SafeMint.sol";
 
@@ -10,7 +10,7 @@ import "../libraries/SafeMint.sol";
  * @dev Foreign side implementation for multi-token mediator intended to work on top of AMB bridge.
  * It is designed to be used as an implementation contract of EternalStorageProxy contract.
  */
-contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnector {
+contract ForeignOmnibridge is BasicOmnibridge, SelectorTokenGasLimitConnector, InterestConnector {
     using SafeERC20 for IERC677;
     using SafeMint for IBurnableMintableERC677Token;
     using SafeMath for uint256;
@@ -25,7 +25,7 @@ contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnecto
      *   [ 0 = dailyLimit, 1 = maxPerTx, 2 = minPerTx ]
      * @param _executionDailyLimitExecutionMaxPerTxArray array with limit values for the assets bridged from the other network.
      *   [ 0 = executionDailyLimit, 1 = executionMaxPerTx ]
-     * @param _requestGasLimit the gas limit for the message execution.
+     * @param _gasLimitManager the gas limit manager contract address.
      * @param _owner address of the owner of the mediator contract.
      * @param _tokenFactory address of the TokenFactory contract that will be used for the deployment of new tokens.
      */
@@ -34,7 +34,7 @@ contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnecto
         address _mediatorContract,
         uint256[3] calldata _dailyLimitMaxPerTxMinPerTxArray, // [ 0 = _dailyLimit, 1 = _maxPerTx, 2 = _minPerTx ]
         uint256[2] calldata _executionDailyLimitExecutionMaxPerTxArray, // [ 0 = _executionDailyLimit, 1 = _executionMaxPerTx ]
-        uint256 _requestGasLimit,
+        address _gasLimitManager,
         address _owner,
         address _tokenFactory
     ) external onlyRelevantSender returns (bool) {
@@ -44,7 +44,7 @@ contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnecto
         _setMediatorContractOnOtherSide(_mediatorContract);
         _setLimits(address(0), _dailyLimitMaxPerTxMinPerTxArray);
         _setExecutionLimits(address(0), _executionDailyLimitExecutionMaxPerTxArray);
-        _setRequestGasLimit(_requestGasLimit);
+        _setGasLimitManager(_gasLimitManager);
         _setOwner(_owner);
         _setTokenFactory(_tokenFactory);
 
@@ -90,7 +90,7 @@ contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnecto
         // send free gas if recipient account balance is 0
         uint256 freeGas = freeGasAmount();
         if (freeGas > 0 && _recipient.balance == 0 && address(this).balance >= freeGas) {
-            payable(_recipient).send(freeGas);
+            payable(_recipient).transfer(freeGas);
         }
 
         emit TokensBridged(_token, _recipient, _value, messageId());
@@ -190,7 +190,7 @@ contract ForeignOmnibridge is BasicOmnibridge, GasLimitManager, InterestConnecto
         (_useOracleLane);
 
         require(msg.value >= passMessageFlatFee());
-        return bridgeContract().requireToPassMessage(mediatorContractOnOtherSide(), _data, requestGasLimit());
+        return bridgeContract().requireToPassMessage(mediatorContractOnOtherSide(), _data, _chooseRequestGasLimit(_data));
     }
 
     /**
