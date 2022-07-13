@@ -108,14 +108,6 @@ abstract contract BasicAMBMediator is Ownable {
      * @param _fee fee value.
      */
     function setPassMessageFlatFee(uint256 _fee) external onlyOwner {
-        _setPassMessageFlatFee(_fee);
-    }
-
-    /**
-     * @dev Sets the flat fee in chain's native coin to be paid for message relay. Internal.
-     * @param _fee fee value.
-     */
-    function _setPassMessageFlatFee(uint256 _fee) internal {
         uintStorage[PASS_MESSAGE_FLAT_FEE] = _fee;
     }
 
@@ -132,14 +124,6 @@ abstract contract BasicAMBMediator is Ownable {
      * @param _gas free gas amount.
      */
     function setFreeGasAmount(uint256 _gas) external onlyOwner {
-        _setFreeGasAmount(_gas);
-    }
-
-    /**
-     * @dev Sets amount of gas to be gifted to the destination account if its balance is 0. Internal.
-     * @param _gas free gas amount.
-     */
-    function _setFreeGasAmount(uint256 _gas) internal {
         uintStorage[FREE_GAS_AMOUNT] = _gas;
     }
 

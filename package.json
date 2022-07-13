@@ -23,6 +23,7 @@
     "bignumber.js": "^9.0.1",
     "dotenv": "^8.2.0",
     "envalid": "^6.0.2",
+    "eth-gas-reporter": "^0.2.25",
     "promise-retry": "^2.0.1",
     "querystring": "^0.2.0",
     "truffle-contract-size": "^2.0.1",

@@ -1,4 +1,7 @@
 module.exports = {
+  mocha: {
+    reporter: 'eth-gas-reporter',
+  },
   contracts_build_directory: './build/contracts',
   networks: {
     ganache: {
@@ -16,7 +19,7 @@ module.exports = {
       settings: {
         optimizer: {
           enabled: true,
-          runs: 200,
+          runs: 125,
         },
         evmVersion: 'istanbul',
       },

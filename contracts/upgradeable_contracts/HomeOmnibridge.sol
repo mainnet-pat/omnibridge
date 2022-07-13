@@ -1,7 +1,7 @@
 pragma solidity 0.7.5;
 
 import "./BasicOmnibridge.sol";
-import "./modules/forwarding_rules/MultiTokenForwardingRulesConnector.sol";
+// import "./modules/forwarding_rules/MultiTokenForwardingRulesConnector.sol";
 import "./modules/fee_manager/OmnibridgeFeeManagerConnector.sol";
 import "./modules/gas_limit/SelectorTokenGasLimitConnector.sol";
 
@@ -13,8 +13,8 @@ import "./modules/gas_limit/SelectorTokenGasLimitConnector.sol";
 contract HomeOmnibridge is
     BasicOmnibridge,
     SelectorTokenGasLimitConnector,
-    OmnibridgeFeeManagerConnector,
-    MultiTokenForwardingRulesConnector
+    OmnibridgeFeeManagerConnector
+    // ,MultiTokenForwardingRulesConnector
 {
     using SafeMath for uint256;
     using SafeERC20 for IERC677;
@@ -56,7 +56,7 @@ contract HomeOmnibridge is
         _setOwner(_owner);
         _setTokenFactory(_tokenFactory);
         _setFeeManager(_feeManager);
-        _setForwardingRulesManager(_forwardingRulesManager);
+        // _setForwardingRulesManager(_forwardingRulesManager);
 
         setInitialize();
 
@@ -80,7 +80,7 @@ contract HomeOmnibridge is
         require(msg.sender == address(this));
 
         _setTokenFactory(_tokenFactory);
-        _setForwardingRulesManager(_forwardingRulesManager);
+        // _setForwardingRulesManager(_forwardingRulesManager);
         _setGasLimitManager(_gasLimitManager);
 
         uintStorage[keccak256(abi.encodePacked("dailyLimit", address(0)))] = _dailyLimit;
@@ -178,7 +178,8 @@ contract HomeOmnibridge is
         bytes memory data = _prepareMessage(nativeToken, _token, _receiver, valueToBridge, _data);
 
         // Address of the home token is used here for determining lane permissions.
-        bytes32 _messageId = _passMessage(data, _isOracleDrivenLaneAllowed(_token, _from, _receiver));
+        // bytes32 _messageId = _passMessage(data, _isOracleDrivenLaneAllowed(_token, _from, _receiver));
+        bytes32 _messageId = _passMessage(data, true);
         _recordBridgeOperation(_messageId, _token, _from, valueToBridge);
         if (fee > 0) {
             emit FeeDistributed(fee, _token, _messageId);
@@ -217,13 +218,13 @@ contract HomeOmnibridge is
         override(BasicOmnibridge, OmnibridgeFeeManagerConnector)
         returns (IBurnableMintableERC677Token)
     {
-        // It is possible to hardcode different token minter contracts here during compile time.
-        // For example, the dedicated TokenMinter (0x857DD07866C1e19eb2CDFceF7aE655cE7f9E560d) is used for
-        // bridged STAKE token (0xb7D311E2Eb55F2f68a9440da38e7989210b9A05e).
-        if (_token == address(0xb7D311E2Eb55F2f68a9440da38e7989210b9A05e)) {
-            // hardcoded address of the TokenMinter address
-            return IBurnableMintableERC677Token(0xb7D311E2Eb55F2f68a9440da38e7989210b9A05e);
-        }
+        // // It is possible to hardcode different token minter contracts here during compile time.
+        // // For example, the dedicated TokenMinter (0x857DD07866C1e19eb2CDFceF7aE655cE7f9E560d) is used for
+        // // bridged STAKE token (0xb7D311E2Eb55F2f68a9440da38e7989210b9A05e).
+        // if (_token == address(0xb7D311E2Eb55F2f68a9440da38e7989210b9A05e)) {
+        //     // hardcoded address of the TokenMinter address
+        //     return IBurnableMintableERC677Token(0xb7D311E2Eb55F2f68a9440da38e7989210b9A05e);
+        // }
         return IBurnableMintableERC677Token(_token);
     }
 }
