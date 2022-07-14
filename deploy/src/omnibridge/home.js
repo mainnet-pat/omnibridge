@@ -13,6 +13,7 @@ const {
   HOME_AMB_BRIDGE,
   HOME_MEDIATOR_REQUEST_GAS_LIMIT,
   HOME_TOKEN_NAME_SUFFIX,
+  HOME_WETH_ADDRESS,
 } = require('../loadEnv')
 const { ZERO_ADDRESS } = require('../constants')
 
@@ -24,6 +25,7 @@ const {
   OmnibridgeFeeManager,
   SelectorTokenGasLimitManager,
   MultiTokenForwardingRulesManager,
+  WETHOmnibridgeRouter,
 } = require('../loadContracts')
 
 async function deployHome() {
@@ -117,6 +119,14 @@ async function deployHome() {
     version: '1',
     nonce: nonce++,
   })
+
+  if (HOME_WETH_ADDRESS) {
+    console.log('\n[Home] HOME_WETH_ADDRESS was set. Deploying WETHOmnibridgeRouter helper\n')
+    const homeWETHOmnibridgeRouter = await deployContract(WETHOmnibridgeRouter, [homeBridgeStorage.options.address, HOME_WETH_ADDRESS, HOME_BRIDGE_OWNER], {
+      nonce: nonce++,
+    })
+    console.log('[Home] WETHOmnibridgeRouter deployed at: ', homeWETHOmnibridgeRouter.options.address)
+  }
 
   console.log('\nHome part of OMNIBRIDGE has been deployed\n')
   return {

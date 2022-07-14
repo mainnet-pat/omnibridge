@@ -7,4 +7,5 @@ module.exports = {
   SelectorTokenGasLimitManager: require(`../../build/contracts/SelectorTokenGasLimitManager.json`),
   OmnibridgeFeeManager: require(`../../build/contracts/OmnibridgeFeeManager.json`),
   PermittableToken: require(`../../precompiled/PermittableToken.json`),
+  WETHOmnibridgeRouter: require(`../../build/contracts/WETHOmnibridgeRouter.json`),
 }

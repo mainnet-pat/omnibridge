@@ -5,7 +5,8 @@ const {
   ForeignOmnibridge,
   PermittableToken,
   TokenFactory,
-  SelectorTokenGasLimitManager
+  SelectorTokenGasLimitManager,
+  WETHOmnibridgeRouter,
 } = require('../loadContracts')
 
 const {
@@ -15,6 +16,7 @@ const {
   FOREIGN_TOKEN_NAME_SUFFIX,
   FOREIGN_AMB_BRIDGE,
   FOREIGN_MEDIATOR_REQUEST_GAS_LIMIT,
+  FOREIGN_WETH_ADDRESS,
 } = require('../loadEnv')
 
 async function deployForeign() {
@@ -84,6 +86,15 @@ async function deployForeign() {
     version: '1',
     nonce: nonce++,
   })
+
+  if (FOREIGN_WETH_ADDRESS) {
+    console.log('\n[Foreign] FOREIGN_WETH_ADDRESS was set. Deploying WETHOmnibridgeRouter helper\n')
+    const foreignWETHOmnibridgeRouter = await deployContract(WETHOmnibridgeRouter, [foreignBridgeStorage.options.address, FOREIGN_WETH_ADDRESS, FOREIGN_BRIDGE_OWNER], {
+      network: 'foreign',
+      nonce: nonce++,
+    })
+    console.log('[Foreign] WETHOmnibridgeRouter deployed at: ', foreignWETHOmnibridgeRouter.options.address)
+  }
 
   console.log('\nForeign part of OMNIBRIDGE has been deployed\n')
   return {
