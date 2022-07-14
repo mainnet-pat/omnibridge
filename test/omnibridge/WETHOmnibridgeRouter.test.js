@@ -3,10 +3,11 @@ const AMBMock = artifacts.require('AMBMock')
 const TokenFactory = artifacts.require('TokenFactory')
 const WETHOmnibridgeRouter = artifacts.require('WETHOmnibridgeRouter')
 const WETH = artifacts.require('WETH')
+const SelectorTokenGasLimitManager = artifacts.require('SelectorTokenGasLimitManager')
 
 const { expect } = require('chai')
 const { getEvents, ether } = require('../helpers/helpers')
-const { toBN, requirePrecompiled } = require('../setup')
+const { ZERO_ADDRESS, toBN, requirePrecompiled } = require('../setup')
 
 const oneEther = ether('1')
 const dailyLimit = ether('2.5')
@@ -19,6 +20,7 @@ contract('WETHOmnibridgeRouter', (accounts) => {
   let token
   let mediator
   let ambBridgeContract
+  let manager
   const owner = accounts[0]
   const user = accounts[1]
 
@@ -29,12 +31,13 @@ contract('WETHOmnibridgeRouter', (accounts) => {
     const tokenFactory = await TokenFactory.new(owner, tokenImage.address)
     mediator = await ForeignOmnibridge.new(' on Testnet')
     ambBridgeContract = await AMBMock.new()
+    manager = await SelectorTokenGasLimitManager.new(ambBridgeContract.address, owner, 1000000)
     await mediator.initialize(
       ambBridgeContract.address,
       mediator.address,
       [dailyLimit, maxPerTx, minPerTx],
       [executionDailyLimit, executionMaxPerTx],
-      1000000,
+      manager.address,
       owner,
       tokenFactory.address
     )
@@ -57,6 +60,35 @@ contract('WETHOmnibridgeRouter', (accounts) => {
       expect(event.returnValues.token).to.be.equal(token.address)
       expect(event.returnValues.sender).to.be.equal(WETHRouter.address)
       expect(event.returnValues.value).to.be.equal(oneEther.toString())
+      expect(event.returnValues.messageId).to.include('0x11223344')
+    }
+    const ambEvents = await getEvents(ambBridgeContract, { event: 'MockedEvent' })
+    expect(ambEvents.length).to.be.equal(2)
+    expect(ambEvents[0].returnValues.data).to.include(user.slice(2).toLowerCase())
+    expect(ambEvents[1].returnValues.data).to.include(accounts[2].slice(2).toLowerCase())
+  })
+
+  it('wrapAndRelayTokens with flat fee', async () => {
+    await mediator.setPassMessageFlatFee(ether('0.1'), {from: owner}).should.be.fulfilled
+
+    const WETHRouter = await WETHOmnibridgeRouter.new(mediator.address, token.address, owner)
+
+    const method1 = WETHRouter.methods['wrapAndRelayTokens()']
+    const method2 = WETHRouter.methods['wrapAndRelayTokens(address)']
+    await method1({ from: user, value: oneEther }).should.be.fulfilled
+    expect(toBN(await web3.eth.getBalance(mediator.address))).to.be.bignumber.equal(ether('0.1'))
+    expect(toBN(await token.balanceOf(mediator.address))).to.be.bignumber.equal(ether('0.9'))
+    await method2(accounts[2], { from: user, value: oneEther }).should.be.fulfilled
+    expect(toBN(await web3.eth.getBalance(mediator.address))).to.be.bignumber.equal(ether('0.2'))
+    expect(toBN(await token.balanceOf(mediator.address))).to.be.bignumber.equal(ether('1.8'))
+    await method1({ from: user, value: oneEther }).should.be.rejected
+
+    const depositEvents = await getEvents(mediator, { event: 'TokensBridgingInitiated' })
+    expect(depositEvents.length).to.be.equal(2)
+    for (const event of depositEvents) {
+      expect(event.returnValues.token).to.be.equal(token.address)
+      expect(event.returnValues.sender).to.be.equal(WETHRouter.address)
+      expect(event.returnValues.value).to.be.equal(ether('0.9').toString())
       expect(event.returnValues.messageId).to.include('0x11223344')
     }
     const ambEvents = await getEvents(ambBridgeContract, { event: 'MockedEvent' })

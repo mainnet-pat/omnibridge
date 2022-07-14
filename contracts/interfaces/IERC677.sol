@@ -9,7 +9,7 @@ interface IERC677 is IERC20 {
         address to,
         uint256 value,
         bytes calldata data
-    ) external returns (bool);
+    ) external payable returns (bool);
 
     function increaseAllowance(address spender, uint256 addedValue) external returns (bool);
 

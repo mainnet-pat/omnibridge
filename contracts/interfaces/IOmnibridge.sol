@@ -5,5 +5,11 @@ interface IOmnibridge {
         address _token,
         address _receiver,
         uint256 _value
-    ) external;
+    ) external payable;
+
+    /**
+     * @dev Gets the flat fee in chain's native coin to be paid for message relay.
+     * @return fee value.
+     */
+    function passMessageFlatFee() external view returns (uint256);
 }

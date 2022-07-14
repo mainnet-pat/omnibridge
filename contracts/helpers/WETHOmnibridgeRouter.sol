@@ -6,6 +6,7 @@ import "../libraries/AddressHelper.sol";
 import "../libraries/Bytes.sol";
 import "../upgradeable_contracts/modules/OwnableModule.sol";
 import "../upgradeable_contracts/Claimable.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 /**
  * @title WETHOmnibridgeRouter
@@ -16,6 +17,8 @@ import "../upgradeable_contracts/Claimable.sol";
  *   https://blockscout.com/poa/xdai/address/0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d
  */
 contract WETHOmnibridgeRouter is OwnableModule, Claimable {
+    using SafeMath for uint256;
+
     IOmnibridge public immutable bridge;
     IWETH public immutable WETH;
 
@@ -48,8 +51,16 @@ contract WETHOmnibridgeRouter is OwnableModule, Claimable {
      * @param _receiver bridged assets receiver on the other side of the bridge.
      */
     function wrapAndRelayTokens(address _receiver) public payable {
-        WETH.deposit{ value: msg.value }();
-        bridge.relayTokens(address(WETH), _receiver, msg.value);
+        uint256 fee = bridge.passMessageFlatFee();
+        if (fee > 0) {
+            uint256 value = msg.value - fee;
+            require(value > 0, "Transaction value should be larger than fee");
+            WETH.deposit{ value: value }();
+            bridge.relayTokens{ value: fee }(address(WETH), _receiver, value);
+        } else {
+            WETH.deposit{ value: msg.value }();
+            bridge.relayTokens(address(WETH), _receiver, msg.value);
+        }
     }
 
     /**
