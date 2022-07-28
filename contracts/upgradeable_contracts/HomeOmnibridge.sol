@@ -179,7 +179,7 @@ contract HomeOmnibridge is
 
         // Address of the home token is used here for determining lane permissions.
         // bytes32 _messageId = _passMessage(data, _isOracleDrivenLaneAllowed(_token, _from, _receiver));
-        bytes32 _messageId = _passMessage(data, true);
+        bytes32 _messageId = _passMessage(data, false);
         _recordBridgeOperation(_messageId, _token, _from, valueToBridge);
         if (fee > 0) {
             emit FeeDistributed(fee, _token, _messageId);
